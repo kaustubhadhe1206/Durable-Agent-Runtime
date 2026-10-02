@@ -106,20 +106,43 @@ The **real crash test** (file: `crates/durable-core/tests/journal_crash.rs`):
 | `journal_survives_process_abort` | The test re-launches itself as a child process. The child completes step 1, starts step 2, then calls `std::process::abort()`: a hard kill with no cleanup, like `kill -9`. The parent reopens the journal and checks that step 1 is still `COMPLETED` with its output and step 2 is `PENDING` and can be retried. **This is the core durability guarantee.** |
 | `crash_child` | Helper used by the test above. It does nothing when run normally. |
 
-### Phase 2: Step API + Replay Engine 🔜
+### Phase 2: Step API + Replay Engine ✅
 
 ```powershell
 cargo test -p durable-core
 ```
 
-Planned integration tests:
+Expected: 19 unit tests (journal + replay + context) and 10 integration tests across
+`journal_crash.rs` and `replay.rs`, all `ok`. Only the replay tests are run with:
 
-| Test | What it will prove |
+```powershell
+cargo test -p durable-core --test replay
+```
+
+The **integration tests** use a small 3-step agent (plan → search → save) and count how many
+step closures actually run. File: `crates/durable-core/tests/replay.rs`.
+
+| Test | What it proves |
 | --- | --- |
-| fresh run executes all steps | On a new `run_id`, every step closure runs once |
-| rerun executes zero closures | Re-running the same `run_id` returns cached outputs; **no LLM calls are repeated** |
-| changed input → `NonDeterminismError` | If code or inputs change so step N differs from the journal, it fails loudly instead of replaying wrong data |
-| PENDING step re-executes | A step that crashed mid-run is executed again on restart |
+| `fresh_run_executes_all_steps` | **(a)** A new `run_id` runs every step exactly once and records all 3 as `COMPLETED`, with the right kinds (llm / tool / side_effect) |
+| `rerun_with_same_run_id_executes_zero_closures` | **(b)** Running the same `run_id` again returns identical output with **zero** closures executed, so no LLM calls are repeated. Stats report the replayed tokens (what a naive restart would have paid again) |
+| `changed_input_raises_non_determinism_error` | **(c)** If the input to step 1 changes between runs, the run stops with `NonDeterminismError` instead of replaying stale results, and the mismatched step does not run |
+| `pending_step_re_executes_after_crash` | **(d)** A child process completes step 1, then calls `abort()` *inside* step 2. On rerun, step 1 is replayed and **only** step 2 runs again |
+| `failed_step_is_recorded_and_retried_on_next_run` | A step that returns an error is stored as `FAILED` and retried on the next run |
+| `execute_reports_replayed_flag` | The lower-level API reports whether a value was replayed (used by the demo's `[REPLAYED]` tags) |
+| `invalid_run_id_is_rejected` | Run ids like `../escape` are rejected, since they become file names |
+| `crash_inside_step_child` | Helper for test (d). It does nothing when run normally |
+
+The **unit tests** in `crates/durable-core/src/replay.rs`:
+
+| Test | What it proves |
+| --- | --- |
+| `step_key_is_deterministic_and_input_sensitive` | The same name + input always hash the same; any change gives a different key |
+| `new_step_executes_and_is_recorded_pending` | A new step is written as `PENDING` *before* the caller runs it |
+| `completed_step_replays_cached_output` | A `COMPLETED` step returns its stored output and token counts |
+| `changed_input_is_non_deterministic` | A key mismatch produces `NonDeterminismError` with both keys for debugging |
+| `non_determinism_is_checked_for_pending_steps_too` | Mismatches are caught even for a step that crashed mid-run |
+| `pending_and_failed_steps_re_execute` | `PENDING` and `FAILED` steps are reset and run again |
 
 ### Phase 3: LLM Layer + Mock Server 🔜
 
