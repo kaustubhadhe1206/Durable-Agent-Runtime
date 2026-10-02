@@ -5,6 +5,10 @@ actually proves. Commands are written for **PowerShell** (the VS Code default on
 
 Status legend: ✅ available now · 🔜 arrives in that phase (this file is updated as phases land)
 
+**Finding code by phase:** every function and struct has a comment like `// [Phase 3]` above
+it, naming the phase it was written in. In VS Code press `Ctrl+Shift+F` and search for
+`[Phase 3]` to see everything from that phase.
+
 ---
 
 ## 0. One-time setup
@@ -267,7 +271,7 @@ report is *really* saved. To see inside a notebook, install the VS Code extensio
 
 Other options: `--topic "..."`, `--run-id NAME`. Full list: `cargo run -p demo-agent -- --help`.
 
-#### Automatic tests
+#### Automatic tests (Phase 4)
 
 ```powershell
 cargo test -p demo-agent
@@ -282,16 +286,61 @@ seconds because they make ~30 real Mistral calls. File: `apps/demo-agent/tests/c
 | `naive_restart_redoes_everything_and_repeats_the_side_effect` | Does Demo 2: after a crash, naive mode redoes all 10 steps (9 Mistral calls), and running again saves the report a **second** time |
 | unit tests (`agent.rs`, `main.rs`) | Reading the 6 subtopics out of Mistral's plan (numbers, bullets, too few lines), the `CRASH_AT_STEP` value, and counting saves |
 
-### Phase 5: Benchmarks 🔜
+### Phase 5: Benchmarks ✅
+
+Benchmarks **measure** how well the project works and turn it into numbers (for your resume).
+Every benchmark uses **real Mistral calls**.
+
+#### Run all benchmarks (takes a few minutes)
 
 ```powershell
 cargo run -p bench --release -- all
 ```
 
-Writes `results/<benchmark>_<timestamp>.json` / `.csv` and regenerates `results/BENCHMARKS.md`.
-Measures: duplicate LLM calls after a crash, tokens and cost saved vs naive, recovery time,
-journal overhead per step (p50/p95/p99), `FULL` vs `NORMAL` sync cost, and throughput.
-Always use `--release`, because debug builds give misleading numbers.
+`--release` builds an optimized program. Benchmarks refuse to run without it, because a debug
+build gives slow, misleading numbers. When it finishes, open **`results/BENCHMARKS.md`**.
+
+#### What each benchmark measures, in simple words
+
+| Command | What it measures |
+| --- | --- |
+| `recovery` | Crashes the real demo agent at step 6 and restarts it, in both modes, 3 times. Counts **duplicate Mistral calls** (steps redone after the crash: durable should be 0, naive 5), **tokens and cost saved**, and **recovery time** (restart until the first new step begins) |
+| `overhead` | Runs 50 real steps and measures how long the **notebook writes** take per step, and what share of the total step time that is |
+| `sync-modes` | The notebook has two safety levels. `FULL` survives even a power cut; `NORMAL` survives a program crash but is faster. This measures how much slower `FULL` is |
+| `throughput` | Runs 1, then 10 agents **at the same time**, and measures steps per second. With real Mistral this is limited by Mistral's speed and free-plan limits |
+
+You can run one at a time, with smaller or larger settings:
+
+```powershell
+cargo run -p bench --release -- recovery --reps 3 --crash-at 6
+cargo run -p bench --release -- overhead --steps 50
+cargo run -p bench --release -- sync-modes --steps 30
+cargo run -p bench --release -- throughput --concurrency 1,10 --steps-per-run 5
+```
+
+#### Where the numbers go
+
+- `results/<benchmark>_<time>.json` and `.csv`: the results of each run (committed to git).
+- `results/BENCHMARKS.md`: a summary generated from the newest JSON of each benchmark. Every
+  number in it names the JSON file it came from. Never edit it by hand.
+- `results/metrics.db`: every single raw measurement (not committed; it can be large).
+
+> Words you'll see: **p50** = the typical value (half the steps were faster). **p99** = the
+> slow end (only 1 in 100 steps was slower). **µs** = microsecond, one millionth of a second.
+
+#### Automatic tests (Phase 5)
+
+```powershell
+cargo test -p bench
+cargo test -p durable-metrics
+```
+
+| Test | In simple words |
+| --- | --- |
+| `overhead_and_throughput_write_traceable_results` | Runs two small benchmarks for real (real Mistral) and checks the JSON, CSV and BENCHMARKS.md files appear, and that BENCHMARKS.md names the JSON file its numbers came from |
+| `debug_build_refuses_without_flag` | Benchmarks refuse to run in a slow debug build |
+| `durable_restart_has_no_duplicates` / `naive_restart_counts_redone_steps_as_duplicates` | The duplicate-call and recovery-time maths is right, checked on sample event lines |
+| `percentiles_of_1_to_100` (and others in `durable-metrics`) | p50/p95/p99 maths, storing measurements in `metrics.db`, writing CSV/JSON, building BENCHMARKS.md |
 
 ### Phase 6: Chaos Testing 🔜
 
