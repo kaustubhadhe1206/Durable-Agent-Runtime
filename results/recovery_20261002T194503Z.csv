@@ -1,0 +1,15 @@
+benchmark,timestamp,metric,value,unit,description
+recovery,2026-10-02T19:45:03Z,duplicate_llm_calls_durable,0,calls,"Duplicate LLM calls after a crash, durable mode (mean per crash)"
+recovery,2026-10-02T19:45:03Z,duplicate_llm_calls_naive,5,calls,"Duplicate LLM calls after a crash, naive restart (mean per crash)"
+recovery,2026-10-02T19:45:03Z,llm_calls_durable,9,calls,"LLM calls across crash + restart, durable (mean)"
+recovery,2026-10-02T19:45:03Z,llm_calls_naive,14,calls,"LLM calls across crash + restart, naive (mean)"
+recovery,2026-10-02T19:45:03Z,tokens_durable,5006.666666666667,tokens,"Tokens used across crash + restart, durable (mean)"
+recovery,2026-10-02T19:45:03Z,tokens_naive,5968,tokens,"Tokens used across crash + restart, naive (mean)"
+recovery,2026-10-02T19:45:03Z,tokens_saved,961.333333333333,tokens,Tokens saved by durable vs naive restart (mean)
+recovery,2026-10-02T19:45:03Z,tokens_saved_pct,16.10813226094727,%,Tokens saved by durable vs naive restart
+recovery,2026-10-02T19:45:03Z,cost_durable_usd,0.00075105,USD,"Cost across crash + restart, durable (paid-tier prices)"
+recovery,2026-10-02T19:45:03Z,cost_naive_usd,0.0008952000000000001,USD,"Cost across crash + restart, naive (paid-tier prices)"
+recovery,2026-10-02T19:45:03Z,cost_saved_usd,0.00014415000000000012,USD,Cost saved by durable vs naive restart (paid-tier prices)
+recovery,2026-10-02T19:45:03Z,recovery_ms_p50_durable,39.007,ms,"Recovery time, durable: restart spawn to first new step executing (p50)"
+recovery,2026-10-02T19:45:03Z,recovery_ms_max_durable,146.037,ms,"Recovery time, durable (max)"
+recovery,2026-10-02T19:45:03Z,recovery_ms_p50_naive,21.103,ms,"Naive restart: spawn to first step executing (step 1, all work redone) (p50)"

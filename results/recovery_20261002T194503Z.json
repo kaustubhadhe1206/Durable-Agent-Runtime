@@ -1,0 +1,121 @@
+{
+  "benchmark": "recovery",
+  "timestamp": "2026-10-02T19:45:03Z",
+  "git_commit": "71ea4af",
+  "machine": {
+    "cpu": "12th Gen Intel(R) Core(TM) i5-12500H",
+    "logical_cores": 16,
+    "ram_gb": 15.692127227783203,
+    "os": "Windows 11 Home Single Language"
+  },
+  "llm_model": "ministral-8b-latest",
+  "config": {
+    "agent_steps": 10,
+    "crash_at_step": 6,
+    "reps": 3
+  },
+  "metrics": [
+    {
+      "name": "duplicate_llm_calls_durable",
+      "value": 0.0,
+      "unit": "calls",
+      "description": "Duplicate LLM calls after a crash, durable mode (mean per crash)",
+      "headline": true
+    },
+    {
+      "name": "duplicate_llm_calls_naive",
+      "value": 5.0,
+      "unit": "calls",
+      "description": "Duplicate LLM calls after a crash, naive restart (mean per crash)",
+      "headline": true
+    },
+    {
+      "name": "llm_calls_durable",
+      "value": 9.0,
+      "unit": "calls",
+      "description": "LLM calls across crash + restart, durable (mean)",
+      "headline": false
+    },
+    {
+      "name": "llm_calls_naive",
+      "value": 14.0,
+      "unit": "calls",
+      "description": "LLM calls across crash + restart, naive (mean)",
+      "headline": false
+    },
+    {
+      "name": "tokens_durable",
+      "value": 5006.666666666667,
+      "unit": "tokens",
+      "description": "Tokens used across crash + restart, durable (mean)",
+      "headline": false
+    },
+    {
+      "name": "tokens_naive",
+      "value": 5968.0,
+      "unit": "tokens",
+      "description": "Tokens used across crash + restart, naive (mean)",
+      "headline": false
+    },
+    {
+      "name": "tokens_saved",
+      "value": 961.333333333333,
+      "unit": "tokens",
+      "description": "Tokens saved by durable vs naive restart (mean)",
+      "headline": false
+    },
+    {
+      "name": "tokens_saved_pct",
+      "value": 16.10813226094727,
+      "unit": "%",
+      "description": "Tokens saved by durable vs naive restart",
+      "headline": true
+    },
+    {
+      "name": "cost_durable_usd",
+      "value": 0.00075105,
+      "unit": "USD",
+      "description": "Cost across crash + restart, durable (paid-tier prices)",
+      "headline": false
+    },
+    {
+      "name": "cost_naive_usd",
+      "value": 0.0008952000000000001,
+      "unit": "USD",
+      "description": "Cost across crash + restart, naive (paid-tier prices)",
+      "headline": false
+    },
+    {
+      "name": "cost_saved_usd",
+      "value": 0.00014415000000000012,
+      "unit": "USD",
+      "description": "Cost saved by durable vs naive restart (paid-tier prices)",
+      "headline": false
+    },
+    {
+      "name": "recovery_ms_p50_durable",
+      "value": 39.007,
+      "unit": "ms",
+      "description": "Recovery time, durable: restart spawn to first new step executing (p50)",
+      "headline": true
+    },
+    {
+      "name": "recovery_ms_max_durable",
+      "value": 146.037,
+      "unit": "ms",
+      "description": "Recovery time, durable (max)",
+      "headline": false
+    },
+    {
+      "name": "recovery_ms_p50_naive",
+      "value": 21.103,
+      "unit": "ms",
+      "description": "Naive restart: spawn to first step executing (step 1, all work redone) (p50)",
+      "headline": false
+    }
+  ],
+  "notes": [
+    "Each repetition crashes demo-agent (abort) when step 6 starts, then restarts it.",
+    "All LLM calls are real Mistral API calls; reply lengths vary run to run, so token and cost figures are means over the repetitions."
+  ]
+}

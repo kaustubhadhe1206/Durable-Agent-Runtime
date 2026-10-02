@@ -1,0 +1,8 @@
+benchmark,timestamp,metric,value,unit,description
+overhead,2026-10-02T19:45:03Z,journal_us_p50,4367,us,Journal overhead per step (p50)
+overhead,2026-10-02T19:45:03Z,journal_us_p95,5891,us,Journal overhead per step (p95)
+overhead,2026-10-02T19:45:03Z,journal_us_p99,8205,us,Journal overhead per step (p99)
+overhead,2026-10-02T19:45:03Z,journal_us_mean,4371.38,us,Journal overhead per step (mean)
+overhead,2026-10-02T19:45:03Z,step_ms_p50,407.039,ms,Total step time incl. Mistral call (p50)
+overhead,2026-10-02T19:45:03Z,llm_ms_p50,403,ms,Mistral HTTP request time (p50)
+overhead,2026-10-02T19:45:03Z,journal_overhead_pct,0.9445738291738389,%,Journal time as a share of total step time (mean/mean)

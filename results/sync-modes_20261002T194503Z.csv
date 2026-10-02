@@ -1,0 +1,8 @@
+benchmark,timestamp,metric,value,unit,description
+sync-modes,2026-10-02T19:45:03Z,full_journal_us_p50,4283,us,synchronous=FULL journal time per step (p50)
+sync-modes,2026-10-02T19:45:03Z,full_journal_us_p99,8913,us,synchronous=FULL journal time per step (p99)
+sync-modes,2026-10-02T19:45:03Z,normal_journal_us_p50,525,us,synchronous=NORMAL journal time per step (p50)
+sync-modes,2026-10-02T19:45:03Z,normal_journal_us_p99,1010,us,synchronous=NORMAL journal time per step (p99)
+sync-modes,2026-10-02T19:45:03Z,full_vs_normal_p50_ratio,8.158095238095239,x,How many times slower FULL journal writes are than NORMAL (p50)
+sync-modes,2026-10-02T19:45:03Z,full_overhead_pct,0.9737692906850522,%,FULL: journal share of total step time
+sync-modes,2026-10-02T19:45:03Z,normal_overhead_pct,0.12399056377484874,%,NORMAL: journal share of total step time

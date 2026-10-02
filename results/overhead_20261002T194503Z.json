@@ -1,0 +1,71 @@
+{
+  "benchmark": "overhead",
+  "timestamp": "2026-10-02T19:45:03Z",
+  "git_commit": "71ea4af",
+  "machine": {
+    "cpu": "12th Gen Intel(R) Core(TM) i5-12500H",
+    "logical_cores": 16,
+    "ram_gb": 15.692127227783203,
+    "os": "Windows 11 Home Single Language"
+  },
+  "llm_model": "ministral-8b-latest",
+  "config": {
+    "max_tokens": 5,
+    "steps": 50,
+    "sync_mode": "FULL"
+  },
+  "metrics": [
+    {
+      "name": "journal_us_p50",
+      "value": 4367.0,
+      "unit": "us",
+      "description": "Journal overhead per step (p50)",
+      "headline": false
+    },
+    {
+      "name": "journal_us_p95",
+      "value": 5891.0,
+      "unit": "us",
+      "description": "Journal overhead per step (p95)",
+      "headline": false
+    },
+    {
+      "name": "journal_us_p99",
+      "value": 8205.0,
+      "unit": "us",
+      "description": "Journal overhead per step (p99)",
+      "headline": true
+    },
+    {
+      "name": "journal_us_mean",
+      "value": 4371.38,
+      "unit": "us",
+      "description": "Journal overhead per step (mean)",
+      "headline": false
+    },
+    {
+      "name": "step_ms_p50",
+      "value": 407.039,
+      "unit": "ms",
+      "description": "Total step time incl. Mistral call (p50)",
+      "headline": false
+    },
+    {
+      "name": "llm_ms_p50",
+      "value": 403.0,
+      "unit": "ms",
+      "description": "Mistral HTTP request time (p50)",
+      "headline": false
+    },
+    {
+      "name": "journal_overhead_pct",
+      "value": 0.9445738291738389,
+      "unit": "%",
+      "description": "Journal time as a share of total step time (mean/mean)",
+      "headline": true
+    }
+  ],
+  "notes": [
+    "Each step is a durable LLM step with a real Mistral call; journal time = PENDING insert + COMPLETED update (incl. fsync)."
+  ]
+}
