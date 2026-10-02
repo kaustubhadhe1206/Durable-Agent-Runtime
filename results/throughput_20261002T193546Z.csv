@@ -1,0 +1,7 @@
+benchmark,timestamp,metric,value,unit,description
+throughput,2026-10-02T19:35:46Z,steps_per_sec_c1,2.60588736666847,steps/s,Throughput with 1 concurrent runs
+throughput,2026-10-02T19:35:46Z,wall_s_c1,1.9187322,s,Wall time for 1 runs x 5 steps
+throughput,2026-10-02T19:35:46Z,failed_runs_c1,0,runs,Runs that failed with 1 concurrent runs
+throughput,2026-10-02T19:35:46Z,steps_per_sec_c10,15.729781976413129,steps/s,Throughput with 10 concurrent runs
+throughput,2026-10-02T19:35:46Z,wall_s_c10,3.1786836,s,Wall time for 10 runs x 5 steps
+throughput,2026-10-02T19:35:46Z,failed_runs_c10,0,runs,Runs that failed with 10 concurrent runs

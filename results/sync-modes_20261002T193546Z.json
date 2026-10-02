@@ -1,0 +1,71 @@
+{
+  "benchmark": "sync-modes",
+  "timestamp": "2026-10-02T19:35:46Z",
+  "git_commit": "277ac35",
+  "machine": {
+    "cpu": "12th Gen Intel(R) Core(TM) i5-12500H",
+    "logical_cores": 16,
+    "ram_gb": 15.692127227783203,
+    "os": "Windows 11 Home Single Language"
+  },
+  "llm_model": "ministral-8b-latest",
+  "config": {
+    "max_tokens": 5,
+    "steps_per_mode": 30
+  },
+  "metrics": [
+    {
+      "name": "full_journal_us_p50",
+      "value": 4947.0,
+      "unit": "us",
+      "description": "synchronous=FULL journal time per step (p50)",
+      "headline": false
+    },
+    {
+      "name": "full_journal_us_p99",
+      "value": 13759.0,
+      "unit": "us",
+      "description": "synchronous=FULL journal time per step (p99)",
+      "headline": false
+    },
+    {
+      "name": "normal_journal_us_p50",
+      "value": 547.0,
+      "unit": "us",
+      "description": "synchronous=NORMAL journal time per step (p50)",
+      "headline": false
+    },
+    {
+      "name": "normal_journal_us_p99",
+      "value": 1056.0,
+      "unit": "us",
+      "description": "synchronous=NORMAL journal time per step (p99)",
+      "headline": false
+    },
+    {
+      "name": "full_vs_normal_p50_ratio",
+      "value": 9.043875685557587,
+      "unit": "x",
+      "description": "How many times slower FULL journal writes are than NORMAL (p50)",
+      "headline": true
+    },
+    {
+      "name": "full_overhead_pct",
+      "value": 1.1734039811067278,
+      "unit": "%",
+      "description": "FULL: journal share of total step time",
+      "headline": false
+    },
+    {
+      "name": "normal_overhead_pct",
+      "value": 0.15736928347931617,
+      "unit": "%",
+      "description": "NORMAL: journal share of total step time",
+      "headline": false
+    }
+  ],
+  "notes": [
+    "FULL fsyncs every commit (survives power loss); NORMAL fsyncs at WAL checkpoints (survives process crash).",
+    "Steps make real Mistral calls; only the journal portion is compared."
+  ]
+}
