@@ -6,8 +6,10 @@
 use std::path::Path;
 use std::process::{Command, Output};
 
+// [Phase 4]
 const BIN: &str = env!("CARGO_BIN_EXE_demo-agent");
 
+// [Phase 4]
 /// Returns the API key from the environment or the repo's `.env`, or `None` to skip.
 fn api_key_or_skip(test: &str) -> Option<String> {
     let _ = dotenvy::from_path(concat!(env!("CARGO_MANIFEST_DIR"), "/../../.env"));
@@ -20,6 +22,7 @@ fn api_key_or_skip(test: &str) -> Option<String> {
     }
 }
 
+// [Phase 4]
 fn run_agent(dir: &Path, key: &str, mode: &str, crash_at: Option<u32>) -> Output {
     let mut cmd = Command::new(BIN);
     cmd.args(["--mode", mode, "--run-id", "t"])
@@ -36,22 +39,26 @@ fn run_agent(dir: &Path, key: &str, mode: &str, crash_at: Option<u32>) -> Output
     cmd.output().expect("failed to launch demo-agent")
 }
 
+// [Phase 4]
 fn stdout(o: &Output) -> String {
     String::from_utf8_lossy(&o.stdout).into_owned()
 }
 
+// [Phase 4]
 /// The tag ("[EXECUTED]" / "[REPLAYED]") printed for step `n`, if that step finished.
 fn tag_of(out: &str, n: u32) -> Option<&str> {
     let marker = format!("step {n:>2}/10");
     out.lines().find(|l| l.contains(&marker)).map(|l| &l[..10])
 }
 
+// [Phase 4]
 fn saves(dir: &Path, mode: &str) -> usize {
     std::fs::read_to_string(dir.join(format!("reports/t-{mode}.saves.log")))
         .map(|s| s.lines().count())
         .unwrap_or(0)
 }
 
+// [Phase 4]
 #[test]
 fn durable_crash_at_6_then_restart_replays_1_to_5() {
     let Some(key) = api_key_or_skip("durable_crash_at_6") else {
@@ -116,6 +123,7 @@ fn durable_crash_at_6_then_restart_replays_1_to_5() {
     assert_eq!(saves(dir.path(), "durable"), 1, "still exactly one save");
 }
 
+// [Phase 4]
 #[test]
 fn naive_restart_redoes_everything_and_repeats_the_side_effect() {
     let Some(key) = api_key_or_skip("naive_restart") else {

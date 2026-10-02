@@ -9,14 +9,18 @@ use anyhow::Context;
 use durable_core::{DurableContext, StepKind, StepSpec, TokenUsage};
 use durable_llm::{LlmClient, LlmError, LlmRequest, LlmResponse, MistralClient};
 
+// [Phase 4]
 pub const TOTAL_STEPS: u32 = 10;
+// [Phase 4]
 const SUBTOPICS: usize = 6;
 
+// [Phase 4]
 pub enum Runner {
     Durable(Box<DurableContext>),
     Naive,
 }
 
+// [Phase 4]
 /// Counters for this process (one launch of the program).
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Totals {
@@ -29,6 +33,7 @@ pub struct Totals {
     pub saved_tokens_out: u64,
 }
 
+// [Phase 4]
 pub struct Agent<'a> {
     pub runner: Runner,
     pub client: &'a MistralClient,
@@ -39,13 +44,16 @@ pub struct Agent<'a> {
     pub totals: Totals,
 }
 
+// [Phase 4]
 /// The result of the whole agent.
 pub struct Report {
     pub text: String,
     pub path: String,
 }
 
+// [Phase 4]
 impl Agent<'_> {
+    // [Phase 4]
     pub async fn run(&mut self, topic: &str) -> anyhow::Result<Report> {
         // Step 1: plan
         let plan = self
@@ -117,6 +125,7 @@ impl Agent<'_> {
         Ok(Report { text: report, path })
     }
 
+    // [Phase 4]
     /// Runs one LLM step and prints its [EXECUTED]/[REPLAYED] line.
     async fn llm(
         &mut self,
@@ -181,6 +190,7 @@ impl Agent<'_> {
         Ok(resp.text)
     }
 
+    // [Phase 4]
     /// Step 10: write the report file. Guarded by an idempotency key in durable mode.
     async fn save_report(&mut self, n: u32, report: &str) -> anyhow::Result<String> {
         let started = Instant::now();
@@ -227,6 +237,7 @@ impl Agent<'_> {
     }
 }
 
+// [Phase 4]
 /// Writes the report and appends one line to the "saves" ledger, which counts how many times
 /// the side effect really ran.
 fn write_report(dir: &Path, file_stem: &str, key: &str, report: &str) -> std::io::Result<String> {
@@ -242,10 +253,12 @@ fn write_report(dir: &Path, file_stem: &str, key: &str, report: &str) -> std::io
     Ok(path.display().to_string())
 }
 
+// [Phase 4]
 pub fn ledger_path(dir: &Path, file_stem: &str) -> PathBuf {
     dir.join(format!("{file_stem}.saves.log"))
 }
 
+// [Phase 4]
 /// How many times the report was really saved (lines in the ledger).
 pub fn count_saves(dir: &Path, file_stem: &str) -> anyhow::Result<usize> {
     match std::fs::read_to_string(ledger_path(dir, file_stem)) {
@@ -255,6 +268,7 @@ pub fn count_saves(dir: &Path, file_stem: &str) -> anyhow::Result<usize> {
     }
 }
 
+// [Phase 4]
 /// Simulates a hard crash (like `kill -9`): no cleanup, no destructors.
 fn maybe_crash(crash_at: Option<u32>, n: u32) {
     if crash_at == Some(n) {
@@ -263,15 +277,18 @@ fn maybe_crash(crash_at: Option<u32>, n: u32) {
     }
 }
 
+// [Phase 4]
 fn print_step(replayed: bool, n: u32, label: &str, detail: &str) {
     let tag = if replayed { "[REPLAYED]" } else { "[EXECUTED]" };
     println!("{tag} step {n:>2}/{TOTAL_STEPS}  {label:<48} ({detail})");
 }
 
+// [Phase 4]
 fn elapsed_ms(started: Instant) -> String {
     format!("{} ms", started.elapsed().as_millis())
 }
 
+// [Phase 4]
 /// Turns the plan's text into exactly `SUBTOPICS` subtopics: strips numbering, bullets and
 /// markdown, drops blank lines, and pads with generic subtopics if the model gave too few.
 pub fn parse_subtopics(plan: &str, topic: &str) -> Vec<String> {
@@ -289,6 +306,7 @@ pub fn parse_subtopics(plan: &str, topic: &str) -> Vec<String> {
     subs
 }
 
+// [Phase 4]
 fn clean_line(line: &str) -> String {
     let mut s = line.trim();
     // Leading bullets: "-", "*", "•"
@@ -304,6 +322,7 @@ fn clean_line(line: &str) -> String {
     s.replace("**", "").trim().to_string()
 }
 
+// [Phase 4]
 fn shorten(s: &str, max: usize) -> String {
     if s.chars().count() <= max {
         s.to_string()
@@ -313,6 +332,7 @@ fn shorten(s: &str, max: usize) -> String {
     }
 }
 
+// [Phase 4]
 #[cfg(test)]
 mod tests {
     use super::*;

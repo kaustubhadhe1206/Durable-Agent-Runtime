@@ -7,8 +7,10 @@ use std::process::Command;
 
 use durable_core::{Journal, NewStep, StepKind, StepStatus};
 
+// [Phase 1]
 const CHILD_ENV: &str = "DURABLE_CORE_CRASH_CHILD_DB";
 
+// [Phase 1]
 fn step(seq: u64, name: &str) -> NewStep<'_> {
     NewStep {
         seq,
@@ -20,6 +22,7 @@ fn step(seq: u64, name: &str) -> NewStep<'_> {
     }
 }
 
+// [Phase 1]
 /// Only does anything when spawned by `journal_survives_process_abort`.
 #[test]
 fn crash_child() {
@@ -34,6 +37,7 @@ fn crash_child() {
     std::process::abort();
 }
 
+// [Phase 1]
 #[test]
 fn journal_survives_process_abort() {
     let dir = tempfile::tempdir().unwrap();

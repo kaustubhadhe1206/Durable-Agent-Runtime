@@ -12,6 +12,7 @@ use sha2::{Digest, Sha256};
 
 use crate::journal::{Journal, JournalError, NewStep, StepKind, StepRecord, StepStatus};
 
+// [Phase 2]
 /// The code asked for a different step than the journal recorded at this `seq`.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 #[error(
@@ -26,6 +27,7 @@ pub struct NonDeterminismError {
     pub actual_key: String,
 }
 
+// [Phase 2]
 /// Errors from the replay engine.
 #[derive(Debug, thiserror::Error)]
 pub enum ReplayError {
@@ -37,6 +39,7 @@ pub enum ReplayError {
     MissingOutput { seq: u64 },
 }
 
+// [Phase 2]
 /// A step the code is about to run.
 #[derive(Debug, Clone)]
 pub struct StepRequest<'a> {
@@ -47,6 +50,7 @@ pub struct StepRequest<'a> {
     pub idempotency_key: Option<&'a str>,
 }
 
+// [Phase 2]
 /// What the caller should do with a step.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Decision {
@@ -60,6 +64,7 @@ pub enum Decision {
     Execute,
 }
 
+// [Phase 2]
 /// `sha256(name || 0x00 || input_json)` as lowercase hex. The 0x00 separator keeps
 /// `("ab", "c")` and `("a", "bc")` from hashing the same.
 pub fn step_key(name: &str, input_json: &str) -> String {
@@ -74,20 +79,25 @@ pub fn step_key(name: &str, input_json: &str) -> String {
         .collect()
 }
 
+// [Phase 2]
 /// Wraps a `Journal` and applies the replay rules from the module docs.
 pub struct Replayer {
     journal: Journal,
 }
 
+// [Phase 2]
 impl Replayer {
+    // [Phase 2]
     pub fn new(journal: Journal) -> Self {
         Self { journal }
     }
 
+    // [Phase 2]
     pub fn journal(&self) -> &Journal {
         &self.journal
     }
 
+    // [Phase 2]
     /// Decides whether to replay or execute `req`. On `Execute`, the step is already
     /// durably recorded as `PENDING` when this returns.
     pub fn begin(&self, req: &StepRequest<'_>) -> Result<Decision, ReplayError> {
@@ -125,6 +135,7 @@ impl Replayer {
         }
     }
 
+    // [Phase 2]
     /// Marks an executing step `COMPLETED`.
     pub fn record_success(
         &self,
@@ -138,6 +149,7 @@ impl Replayer {
             .complete_step(seq, output_json, tokens_in, tokens_out)?)
     }
 
+    // [Phase 2]
     /// Marks an executing step `FAILED`; it will re-execute on the next run.
     pub fn record_failure(&self, seq: u64, error_message: &str) -> Result<(), ReplayError> {
         let error_json = serde_json::Value::String(error_message.to_string()).to_string();
@@ -145,6 +157,7 @@ impl Replayer {
     }
 }
 
+// [Phase 2]
 fn check_determinism(
     existing: &StepRecord,
     name: &str,
@@ -162,6 +175,7 @@ fn check_determinism(
     })
 }
 
+// [Phase 2]
 #[cfg(test)]
 mod tests {
     use super::*;

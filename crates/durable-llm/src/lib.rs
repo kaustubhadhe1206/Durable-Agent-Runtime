@@ -1,13 +1,17 @@
 //! LLM layer: an `LlmClient` trait, a Mistral implementation, and token-based pricing.
 
+// [Phase 3]
 pub mod client;
+// [Phase 3]
 pub mod mistral;
+// [Phase 3]
 pub mod pricing;
 
 pub use client::{LlmClient, LlmRequest, LlmResponse};
 pub use mistral::{MistralClient, DEFAULT_MODEL};
 pub use pricing::{ModelPrice, Pricing, PricingError};
 
+// [Phase 3]
 /// Errors from LLM clients.
 #[derive(Debug, thiserror::Error)]
 pub enum LlmError {

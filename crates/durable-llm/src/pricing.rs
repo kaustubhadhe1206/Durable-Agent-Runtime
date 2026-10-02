@@ -5,9 +5,11 @@ use std::path::Path;
 
 use serde::Deserialize;
 
+// [Phase 3]
 /// The bundled `pricing.toml`, compiled into the binary.
 const DEFAULT_PRICING_TOML: &str = include_str!("../pricing.toml");
 
+// [Phase 3]
 #[derive(Debug, thiserror::Error)]
 pub enum PricingError {
     #[error("could not read pricing file: {0}")]
@@ -18,6 +20,7 @@ pub enum PricingError {
     UnknownModel(String),
 }
 
+// [Phase 3]
 /// Price of one model, in USD per 1 million tokens.
 #[derive(Debug, Clone, Copy, PartialEq, Deserialize)]
 pub struct ModelPrice {
@@ -25,27 +28,33 @@ pub struct ModelPrice {
     pub output_per_million: f64,
 }
 
+// [Phase 3]
 /// A table of model prices loaded from TOML.
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 pub struct Pricing {
     models: HashMap<String, ModelPrice>,
 }
 
+// [Phase 3]
 impl Pricing {
+    // [Phase 3]
     /// The prices bundled with this crate (`crates/durable-llm/pricing.toml`).
     pub fn bundled() -> Result<Self, PricingError> {
         Self::from_toml_str(DEFAULT_PRICING_TOML)
     }
 
+    // [Phase 3]
     /// Loads prices from a TOML file on disk.
     pub fn load(path: impl AsRef<Path>) -> Result<Self, PricingError> {
         Self::from_toml_str(&std::fs::read_to_string(path)?)
     }
 
+    // [Phase 3]
     pub fn from_toml_str(s: &str) -> Result<Self, PricingError> {
         Ok(toml::from_str(s)?)
     }
 
+    // [Phase 3]
     pub fn price(&self, model: &str) -> Result<ModelPrice, PricingError> {
         self.models
             .get(model)
@@ -53,6 +62,7 @@ impl Pricing {
             .ok_or_else(|| PricingError::UnknownModel(model.to_string()))
     }
 
+    // [Phase 3]
     /// Cost in USD of a call to `model` that used the given token counts.
     pub fn cost_usd(
         &self,
@@ -69,6 +79,7 @@ impl Pricing {
     }
 }
 
+// [Phase 3]
 #[cfg(test)]
 mod tests {
     use super::*;

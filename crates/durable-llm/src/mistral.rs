@@ -9,13 +9,19 @@ use serde_json::{json, Value};
 use crate::client::{LlmClient, LlmRequest, LlmResponse};
 use crate::LlmError;
 
+// [Phase 3]
 /// Open-weight Ministral 8B: available on the free tier with a generous rate limit.
 pub const DEFAULT_MODEL: &str = "ministral-8b-latest";
+// [Phase 3]
 pub const DEFAULT_BASE_URL: &str = "https://api.mistral.ai";
+// [Phase 3]
 const DEFAULT_MAX_RETRIES: u32 = 5;
+// [Phase 3]
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(60);
+// [Phase 3]
 const MAX_BACKOFF: Duration = Duration::from_secs(20);
 
+// [Phase 3]
 pub struct MistralClient {
     http: reqwest::Client,
     api_key: String,
@@ -25,7 +31,9 @@ pub struct MistralClient {
 }
 
 // Manual Debug so the API key never ends up in logs or panic messages.
+// [Phase 3]
 impl std::fmt::Debug for MistralClient {
+    // [Phase 3]
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("MistralClient")
             .field("api_key", &"<redacted>")
@@ -36,7 +44,9 @@ impl std::fmt::Debug for MistralClient {
     }
 }
 
+// [Phase 3]
 impl MistralClient {
+    // [Phase 3]
     pub fn new(api_key: impl Into<String>, model: impl Into<String>) -> Result<Self, LlmError> {
         let api_key = api_key.into();
         if api_key.trim().is_empty() {
@@ -54,6 +64,7 @@ impl MistralClient {
         })
     }
 
+    // [Phase 3]
     /// Reads `MISTRAL_API_KEY` (required) and `MISTRAL_MODEL` (optional) from the environment.
     /// Apps load `.env` into the environment before calling this.
     pub fn from_env() -> Result<Self, LlmError> {
@@ -62,17 +73,20 @@ impl MistralClient {
         Self::new(key, model)
     }
 
+    // [Phase 3]
     pub fn with_base_url(mut self, base_url: impl Into<String>) -> Self {
         self.base_url = base_url.into();
         self
     }
 
+    // [Phase 3]
     /// How many times to retry after a rate limit (429) or server error (5xx).
     pub fn with_max_retries(mut self, max_retries: u32) -> Self {
         self.max_retries = max_retries;
         self
     }
 
+    // [Phase 3]
     fn request_body(&self, req: &LlmRequest) -> Value {
         let mut messages = Vec::new();
         if let Some(system) = &req.system {
@@ -92,6 +106,7 @@ impl MistralClient {
         body
     }
 
+    // [Phase 3]
     async fn complete_inner(&self, req: &LlmRequest) -> Result<LlmResponse, LlmError> {
         let url = format!(
             "{}/v1/chat/completions",
@@ -149,11 +164,14 @@ impl MistralClient {
     }
 }
 
+// [Phase 3]
 impl LlmClient for MistralClient {
+    // [Phase 3]
     fn model(&self) -> &str {
         &self.model
     }
 
+    // [Phase 3]
     fn complete(
         &self,
         request: &LlmRequest,
@@ -162,10 +180,12 @@ impl LlmClient for MistralClient {
     }
 }
 
+// [Phase 3]
 fn is_retryable(status: StatusCode) -> bool {
     status == StatusCode::TOO_MANY_REQUESTS || status.is_server_error()
 }
 
+// [Phase 3]
 /// Exponential backoff: 0.5s, 1s, 2s, 4s, ... capped at `MAX_BACKOFF`.
 fn backoff(attempt: u32) -> Duration {
     Duration::from_millis(500)
@@ -173,6 +193,7 @@ fn backoff(attempt: u32) -> Duration {
         .min(MAX_BACKOFF)
 }
 
+// [Phase 3]
 fn retry_after_header(resp: &reqwest::Response) -> Option<Duration> {
     resp.headers()
         .get(reqwest::header::RETRY_AFTER)?
@@ -184,6 +205,7 @@ fn retry_after_header(resp: &reqwest::Response) -> Option<Duration> {
         .map(|secs| Duration::from_secs(secs).min(MAX_BACKOFF))
 }
 
+// [Phase 3]
 #[derive(Deserialize)]
 struct ApiResponse {
     model: String,
@@ -191,23 +213,27 @@ struct ApiResponse {
     usage: ApiUsage,
 }
 
+// [Phase 3]
 #[derive(Deserialize)]
 struct ApiChoice {
     message: ApiMessage,
 }
 
+// [Phase 3]
 #[derive(Deserialize)]
 struct ApiMessage {
     /// Usually a string; reasoning models may return a list of content chunks instead.
     content: Value,
 }
 
+// [Phase 3]
 #[derive(Deserialize)]
 struct ApiUsage {
     prompt_tokens: u64,
     completion_tokens: u64,
 }
 
+// [Phase 3]
 fn parse_response(body: &str, latency_ms: u64) -> Result<LlmResponse, LlmError> {
     let api: ApiResponse = serde_json::from_str(body)
         .map_err(|e| LlmError::InvalidResponse(format!("{e}: {}", truncate(body, 200))))?;
@@ -225,6 +251,7 @@ fn parse_response(body: &str, latency_ms: u64) -> Result<LlmResponse, LlmError> 
     })
 }
 
+// [Phase 3]
 fn content_text(content: &Value) -> Result<String, LlmError> {
     match content {
         Value::String(s) => Ok(s.clone()),
@@ -240,6 +267,7 @@ fn content_text(content: &Value) -> Result<String, LlmError> {
     }
 }
 
+// [Phase 3]
 fn truncate(s: &str, max: usize) -> &str {
     match s.char_indices().nth(max) {
         Some((i, _)) => &s[..i],
@@ -247,6 +275,7 @@ fn truncate(s: &str, max: usize) -> &str {
     }
 }
 
+// [Phase 3]
 #[cfg(test)]
 mod tests {
     use super::*;

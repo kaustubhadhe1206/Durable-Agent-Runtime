@@ -1,3 +1,4 @@
+# [Phase 0] CI: fmt + clippy + tests on every push.
 name: CI
 
 on:
@@ -26,5 +27,5 @@ jobs:
       - name: Test
         run: cargo test --workspace
         env:
-          # Live Mistral tests run only if this repo secret is set; otherwise they skip.
+          # [Phase 3] Live Mistral tests run only if this repo secret is set; otherwise they skip.
           MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}

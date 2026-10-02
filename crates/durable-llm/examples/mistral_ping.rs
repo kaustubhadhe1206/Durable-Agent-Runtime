@@ -5,6 +5,7 @@
 
 use durable_llm::{LlmClient, LlmRequest, MistralClient, Pricing};
 
+// [Phase 3]
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let _ = dotenvy::dotenv(); // load MISTRAL_API_KEY from .env if present

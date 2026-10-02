@@ -1,3 +1,4 @@
+# [Phase 0] Workspace scaffold. Later phases add members and dependencies.
 [workspace]
 resolver = "2"
 members = [

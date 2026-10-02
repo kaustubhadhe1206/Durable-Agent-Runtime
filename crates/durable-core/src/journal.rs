@@ -15,6 +15,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use rusqlite::{params, Connection, OptionalExtension};
 
+// [Phase 1]
 const SCHEMA: &str = "
 CREATE TABLE IF NOT EXISTS steps (
     seq             INTEGER PRIMARY KEY,
@@ -34,9 +35,11 @@ CREATE UNIQUE INDEX IF NOT EXISTS steps_idempotency_key
     ON steps (idempotency_key) WHERE idempotency_key IS NOT NULL;
 ";
 
+// [Phase 1]
 const SELECT_COLUMNS: &str = "seq, step_name, step_key, kind, status, input_json, output_json,
      idempotency_key, tokens_in, tokens_out, started_at_us, completed_at_us";
 
+// [Phase 1]
 /// Errors returned by the journal.
 #[derive(Debug, thiserror::Error)]
 pub enum JournalError {
@@ -62,8 +65,10 @@ pub enum JournalError {
     WalUnavailable(String),
 }
 
+// [Phase 1]
 pub type Result<T> = std::result::Result<T, JournalError>;
 
+// [Phase 1]
 /// How aggressively SQLite fsyncs. See the module docs for the durability tradeoff.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum SyncMode {
@@ -74,7 +79,9 @@ pub enum SyncMode {
     Normal,
 }
 
+// [Phase 1]
 impl SyncMode {
+    // [Phase 1]
     fn pragma_value(self) -> &'static str {
         match self {
             SyncMode::Full => "FULL",
@@ -83,6 +90,7 @@ impl SyncMode {
     }
 }
 
+// [Phase 1]
 /// What kind of work a step performs.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum StepKind {
@@ -91,7 +99,9 @@ pub enum StepKind {
     SideEffect,
 }
 
+// [Phase 1]
 impl StepKind {
+    // [Phase 1]
     pub fn as_str(self) -> &'static str {
         match self {
             StepKind::Llm => "llm",
@@ -100,6 +110,7 @@ impl StepKind {
         }
     }
 
+    // [Phase 1]
     fn parse(s: &str) -> Result<Self> {
         match s {
             "llm" => Ok(StepKind::Llm),
@@ -110,6 +121,7 @@ impl StepKind {
     }
 }
 
+// [Phase 1]
 /// Lifecycle state of a step.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum StepStatus {
@@ -118,7 +130,9 @@ pub enum StepStatus {
     Failed,
 }
 
+// [Phase 1]
 impl StepStatus {
+    // [Phase 1]
     pub fn as_str(self) -> &'static str {
         match self {
             StepStatus::Pending => "PENDING",
@@ -127,6 +141,7 @@ impl StepStatus {
         }
     }
 
+    // [Phase 1]
     fn parse(s: &str) -> Result<Self> {
         match s {
             "PENDING" => Ok(StepStatus::Pending),
@@ -139,12 +154,15 @@ impl StepStatus {
     }
 }
 
+// [Phase 1]
 impl std::fmt::Display for StepStatus {
+    // [Phase 1]
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(self.as_str())
     }
 }
 
+// [Phase 1]
 /// A step about to start executing; written as `PENDING`.
 #[derive(Debug, Clone)]
 pub struct NewStep<'a> {
@@ -156,6 +174,7 @@ pub struct NewStep<'a> {
     pub idempotency_key: Option<&'a str>,
 }
 
+// [Phase 1]
 /// One row of the journal.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StepRecord {
@@ -174,6 +193,7 @@ pub struct StepRecord {
     pub completed_at_us: Option<i64>,
 }
 
+// [Phase 1]
 /// Raw column values, converted to `StepRecord` outside the rusqlite row closure so that
 /// parse failures can be reported as `JournalError` rather than `rusqlite::Error`.
 type RawRow = (
@@ -191,18 +211,22 @@ type RawRow = (
     Option<i64>,
 );
 
+// [Phase 1]
 /// A SQLite-backed journal for a single run.
 pub struct Journal {
     conn: Connection,
     path: PathBuf,
 }
 
+// [Phase 1]
 impl Journal {
+    // [Phase 1]
     /// Opens (or creates) the journal at `path` with `SyncMode::Full`.
     pub fn open(path: impl AsRef<Path>) -> Result<Self> {
         Self::open_with(path, SyncMode::Full)
     }
 
+    // [Phase 1]
     /// Opens (or creates) the journal at `path` with the given sync mode.
     pub fn open_with(path: impl AsRef<Path>, sync: SyncMode) -> Result<Self> {
         let path = path.as_ref().to_path_buf();
@@ -221,11 +245,13 @@ impl Journal {
         Ok(Self { conn, path })
     }
 
+    // [Phase 1]
     /// Path of the underlying SQLite file.
     pub fn path(&self) -> &Path {
         &self.path
     }
 
+    // [Phase 1]
     /// Records a step as `PENDING`. Must be called before the step executes.
     pub fn append_pending(&self, step: &NewStep<'_>) -> Result<()> {
         let seq = to_sql_int(step.seq)?;
@@ -259,6 +285,7 @@ impl Journal {
         }
     }
 
+    // [Phase 1]
     /// Moves a `PENDING` step to `COMPLETED` with its output and token usage.
     pub fn complete_step(
         &self,
@@ -283,6 +310,7 @@ impl Journal {
         self.check_transition(seq, changed, StepStatus::Completed)
     }
 
+    // [Phase 1]
     /// Moves a `PENDING` step to `FAILED`, storing the error description.
     pub fn fail_step(&self, seq: u64, error_json: &str) -> Result<()> {
         let changed = self.conn.execute(
@@ -293,6 +321,7 @@ impl Journal {
         self.check_transition(seq, changed, StepStatus::Failed)
     }
 
+    // [Phase 1]
     /// Resets a `PENDING` (crashed mid-step) or `FAILED` step back to a fresh `PENDING`
     /// attempt before re-executing it. `COMPLETED` steps can never be retried.
     pub fn restart_step(&self, seq: u64) -> Result<()> {
@@ -306,6 +335,7 @@ impl Journal {
         self.check_transition(seq, changed, StepStatus::Pending)
     }
 
+    // [Phase 1]
     /// Reads the step at `seq`, if any.
     pub fn get_step(&self, seq: u64) -> Result<Option<StepRecord>> {
         let sql = format!("SELECT {SELECT_COLUMNS} FROM steps WHERE seq = ?1");
@@ -316,6 +346,7 @@ impl Journal {
         raw.map(into_record).transpose()
     }
 
+    // [Phase 1]
     /// Finds the step that used `key` as its idempotency key, if any.
     pub fn find_by_idempotency_key(&self, key: &str) -> Result<Option<StepRecord>> {
         let sql = format!("SELECT {SELECT_COLUMNS} FROM steps WHERE idempotency_key = ?1");
@@ -326,6 +357,7 @@ impl Journal {
         raw.map(into_record).transpose()
     }
 
+    // [Phase 1]
     /// All steps, ordered by `seq`.
     pub fn steps(&self) -> Result<Vec<StepRecord>> {
         let sql = format!("SELECT {SELECT_COLUMNS} FROM steps ORDER BY seq");
@@ -338,6 +370,7 @@ impl Journal {
         Ok(out)
     }
 
+    // [Phase 1]
     /// Highest recorded `seq`, or `None` for an empty journal.
     pub fn last_seq(&self) -> Result<Option<u64>> {
         let max: Option<i64> = self
@@ -346,6 +379,7 @@ impl Journal {
         max.map(from_sql_int).transpose()
     }
 
+    // [Phase 1]
     /// Turns a zero-rows-changed UPDATE into a precise error.
     fn check_transition(&self, seq: u64, changed: usize, to: StepStatus) -> Result<()> {
         if changed > 0 {
@@ -362,6 +396,7 @@ impl Journal {
     }
 }
 
+// [Phase 1]
 fn read_raw(row: &rusqlite::Row<'_>) -> rusqlite::Result<RawRow> {
     Ok((
         row.get(0)?,
@@ -379,6 +414,7 @@ fn read_raw(row: &rusqlite::Row<'_>) -> rusqlite::Result<RawRow> {
     ))
 }
 
+// [Phase 1]
 fn into_record(raw: RawRow) -> Result<StepRecord> {
     let (
         seq,
@@ -410,14 +446,17 @@ fn into_record(raw: RawRow) -> Result<StepRecord> {
     })
 }
 
+// [Phase 1]
 fn to_sql_int(v: u64) -> Result<i64> {
     i64::try_from(v).map_err(|_| JournalError::OutOfRange(v))
 }
 
+// [Phase 1]
 fn from_sql_int(v: i64) -> Result<u64> {
     u64::try_from(v).map_err(|_| JournalError::CorruptRow(format!("negative integer {v}")))
 }
 
+// [Phase 1]
 fn is_unique_violation(e: &rusqlite::Error) -> bool {
     matches!(
         e,
@@ -427,6 +466,7 @@ fn is_unique_violation(e: &rusqlite::Error) -> bool {
     )
 }
 
+// [Phase 1]
 /// Microseconds since the Unix epoch. A clock before 1970 is treated as 0.
 fn now_us() -> i64 {
     SystemTime::now()
@@ -435,6 +475,7 @@ fn now_us() -> i64 {
         .unwrap_or(0)
 }
 
+// [Phase 1]
 #[cfg(test)]
 mod tests {
     use super::*;

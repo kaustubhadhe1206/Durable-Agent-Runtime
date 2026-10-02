@@ -8,6 +8,7 @@ use durable_core::{
     DurableContext, DurableError, Journal, StepKind, StepSpec, StepStatus, TokenUsage,
 };
 
+// [Phase 2]
 /// Runs a fixed 3-step agent: plan (llm) → search (tool) → save (side effect).
 /// `calls` counts how many closures actually executed.
 async fn three_step_agent(
@@ -44,6 +45,7 @@ async fn three_step_agent(
     Ok(results.join(","))
 }
 
+// [Phase 2]
 /// (a) A new run_id executes every step closure exactly once.
 #[tokio::test]
 async fn fresh_run_executes_all_steps() {
@@ -70,6 +72,7 @@ async fn fresh_run_executes_all_steps() {
     assert_eq!(steps[2].idempotency_key.as_deref(), Some("save-report-1"));
 }
 
+// [Phase 2]
 /// (b) Rerunning a completed run_id replays everything and runs zero closures.
 #[tokio::test]
 async fn rerun_with_same_run_id_executes_zero_closures() {
@@ -101,6 +104,7 @@ async fn rerun_with_same_run_id_executes_zero_closures() {
     );
 }
 
+// [Phase 2]
 /// (c) Changing a step's input between runs fails loudly instead of replaying stale data.
 #[tokio::test]
 async fn changed_input_raises_non_determinism_error() {
@@ -126,11 +130,13 @@ async fn changed_input_raises_non_determinism_error() {
     );
 }
 
+// [Phase 2]
 #[tokio::test]
 async fn failed_step_is_recorded_and_retried_on_next_run() {
     let dir = tempfile::tempdir().unwrap();
     let attempts = AtomicUsize::new(0);
 
+    // [Phase 2]
     async fn flaky(ctx: &DurableContext, attempts: &AtomicUsize) -> Result<usize, DurableError> {
         ctx.step("flaky", "in", || async {
             let n = attempts.fetch_add(1, Ordering::SeqCst);
@@ -161,10 +167,12 @@ async fn failed_step_is_recorded_and_retried_on_next_run() {
     assert_eq!(attempts.load(Ordering::SeqCst), 2);
 }
 
+// [Phase 2]
 #[tokio::test]
 async fn execute_reports_replayed_flag() {
     let dir = tempfile::tempdir().unwrap();
 
+    // [Phase 2]
     async fn run(ctx: &DurableContext) -> durable_core::StepOutcome<String> {
         let spec = StepSpec {
             name: "s",
@@ -187,6 +195,7 @@ async fn execute_reports_replayed_flag() {
     assert_eq!(second.value, "v");
 }
 
+// [Phase 2]
 #[tokio::test]
 async fn invalid_run_id_is_rejected() {
     let dir = tempfile::tempdir().unwrap();
@@ -196,8 +205,10 @@ async fn invalid_run_id_is_rejected() {
 
 // ---- (d) PENDING step re-executes after a real crash ------------------------------------
 
+// [Phase 2]
 const CHILD_ENV: &str = "DURABLE_CORE_REPLAY_CRASH_DIR";
 
+// [Phase 2]
 /// Spawned by `pending_step_re_executes_after_crash`: completes step 1, then aborts the
 /// process *inside* step 2, leaving it PENDING in the journal. No-op when run normally.
 #[tokio::test]
@@ -224,6 +235,7 @@ async fn crash_inside_step_child() {
         .unwrap();
 }
 
+// [Phase 2]
 /// (d) After a hard crash mid-step, the rerun replays step 1 and re-executes only step 2.
 #[tokio::test]
 async fn pending_step_re_executes_after_crash() {

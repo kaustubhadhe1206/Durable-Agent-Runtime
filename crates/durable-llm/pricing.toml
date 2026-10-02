@@ -1,3 +1,4 @@
+# [Phase 3]
 # LLM prices in USD per 1 million tokens.
 # Source: https://mistral.ai/pricing/api/ (checked 2026-10-02).
 # The free API tier does not charge, but cost is still computed from token counts so the

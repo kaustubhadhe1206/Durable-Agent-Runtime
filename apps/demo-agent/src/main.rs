@@ -3,6 +3,7 @@
 //! cargo run -p demo-agent -- --mode durable
 //! $env:CRASH_AT_STEP=6; cargo run -p demo-agent -- --mode durable   (PowerShell)
 
+// [Phase 4]
 mod agent;
 
 use std::path::{Path, PathBuf};
@@ -15,8 +16,10 @@ use durable_llm::{LlmClient, MistralClient, Pricing};
 
 use agent::{count_saves, Agent, Runner, Totals, TOTAL_STEPS};
 
+// [Phase 4]
 const DEFAULT_TOPIC: &str = "How solid-state batteries could change electric cars";
 
+// [Phase 4]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
 enum Mode {
     /// Journal every step; a restart resumes where it stopped.
@@ -25,7 +28,9 @@ enum Mode {
     Naive,
 }
 
+// [Phase 4]
 impl Mode {
+    // [Phase 4]
     fn name(self) -> &'static str {
         match self {
             Mode::Durable => "durable",
@@ -34,6 +39,7 @@ impl Mode {
     }
 }
 
+// [Phase 4]
 #[derive(Parser, Debug)]
 #[command(about = "10-step research agent (durable + naive modes) using Mistral")]
 struct Args {
@@ -56,6 +62,7 @@ struct Args {
     fresh: bool,
 }
 
+// [Phase 4]
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let _ = dotenvy::dotenv(); // loads MISTRAL_API_KEY from .env if present
@@ -136,6 +143,7 @@ async fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
+// [Phase 4]
 fn print_summary(t: &Totals, pricing: &Pricing, model: &str, secs: f64, saves: usize, args: &Args) {
     let cost = |tin, tout| match pricing.cost_usd(model, tin, tout) {
         Ok(c) => format!("${c:.6}"),
@@ -169,6 +177,7 @@ fn print_summary(t: &Totals, pricing: &Pricing, model: &str, secs: f64, saves: u
     println!("(costs use paid-tier prices; the Mistral free tier charges $0)");
 }
 
+// [Phase 4]
 /// Reads `CRASH_AT_STEP` (1-10) from the environment, if set.
 fn crash_at_from_env() -> anyhow::Result<Option<u32>> {
     match std::env::var("CRASH_AT_STEP") {
@@ -178,6 +187,7 @@ fn crash_at_from_env() -> anyhow::Result<Option<u32>> {
     }
 }
 
+// [Phase 4]
 fn parse_crash_at(v: &str) -> anyhow::Result<u32> {
     let n: u32 = v
         .trim()
@@ -189,6 +199,7 @@ fn parse_crash_at(v: &str) -> anyhow::Result<u32> {
     Ok(n)
 }
 
+// [Phase 4]
 /// `--fresh`: remove this run's journal (plus SQLite's WAL side files) and reports.
 fn reset_run(args: &Args, file_stem: &str) -> anyhow::Result<()> {
     let db = args.runs_dir.join(format!("{}.db", args.run_id));
@@ -211,12 +222,14 @@ fn reset_run(args: &Args, file_stem: &str) -> anyhow::Result<()> {
     Ok(())
 }
 
+// [Phase 4]
 fn with_suffix(path: &Path, suffix: &str) -> PathBuf {
     let mut s = path.as_os_str().to_owned();
     s.push(suffix);
     PathBuf::from(s)
 }
 
+// [Phase 4]
 #[cfg(test)]
 mod tests {
     use super::*;

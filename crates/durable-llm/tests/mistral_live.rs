@@ -8,6 +8,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use durable_core::{DurableContext, TokenUsage};
 use durable_llm::{LlmClient, LlmError, LlmRequest, LlmResponse, MistralClient, Pricing};
 
+// [Phase 3]
 /// Loads `.env` from the workspace root and builds a client, or returns `None` to skip.
 fn client_or_skip(test: &str) -> Option<MistralClient> {
     let env_path = concat!(env!("CARGO_MANIFEST_DIR"), "/../../.env");
@@ -22,6 +23,7 @@ fn client_or_skip(test: &str) -> Option<MistralClient> {
     }
 }
 
+// [Phase 3]
 #[tokio::test]
 async fn real_call_returns_text_tokens_latency_and_cost() -> anyhow::Result<()> {
     let Some(client) = client_or_skip("real_call") else {
@@ -51,6 +53,7 @@ async fn real_call_returns_text_tokens_latency_and_cost() -> anyhow::Result<()> 
     Ok(())
 }
 
+// [Phase 3]
 #[tokio::test]
 async fn bad_api_key_is_rejected_without_retrying() {
     if client_or_skip("bad_api_key").is_none() {
@@ -68,6 +71,7 @@ async fn bad_api_key_is_rejected_without_retrying() {
     );
 }
 
+// [Phase 3]
 /// Phase 2 + Phase 3 together: a durable step backed by a real Mistral call is executed
 /// once, and re-running the same run replays it without contacting Mistral again.
 #[tokio::test]
@@ -79,6 +83,7 @@ async fn durable_step_with_real_llm_is_not_repeated_on_rerun() -> anyhow::Result
     let calls = AtomicUsize::new(0);
     let req = LlmRequest::new("Say hello in French. One word.").with_max_tokens(10);
 
+    // [Phase 3]
     async fn ask(
         ctx: &DurableContext,
         client: &MistralClient,

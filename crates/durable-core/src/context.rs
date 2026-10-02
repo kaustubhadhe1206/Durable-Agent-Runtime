@@ -20,13 +20,16 @@ use serde::Serialize;
 use crate::journal::{Journal, JournalError, StepKind, SyncMode};
 use crate::replay::{Decision, NonDeterminismError, ReplayError, Replayer, StepRequest};
 
+// [Phase 2]
 /// Error type user closures may return: anything convertible to a boxed error
 /// (`std::io::Error`, `String`, `anyhow::Error`, ...). `Send + Sync` lets it cross threads.
 pub type BoxError = Box<dyn std::error::Error + Send + Sync>;
 
+// [Phase 2]
 /// Directory for run journals when none is given. Overridable via `DURABLE_RUNS_DIR`.
 pub const DEFAULT_RUNS_DIR: &str = "runs";
 
+// [Phase 2]
 /// Errors returned by `DurableContext`.
 #[derive(Debug, thiserror::Error)]
 pub enum DurableError {
@@ -52,7 +55,9 @@ pub enum DurableError {
     LockPoisoned,
 }
 
+// [Phase 2]
 impl From<ReplayError> for DurableError {
+    // [Phase 2]
     fn from(e: ReplayError) -> Self {
         match e {
             ReplayError::Journal(j) => DurableError::Journal(j),
@@ -62,8 +67,10 @@ impl From<ReplayError> for DurableError {
     }
 }
 
+// [Phase 2]
 pub type Result<T> = std::result::Result<T, DurableError>;
 
+// [Phase 2]
 /// Token counts reported by an LLM step.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct TokenUsage {
@@ -71,6 +78,7 @@ pub struct TokenUsage {
     pub tokens_out: u64,
 }
 
+// [Phase 2]
 /// Describes one step for `DurableContext::execute`.
 #[derive(Debug, Clone, Copy)]
 pub struct StepSpec<'a, I: ?Sized> {
@@ -80,6 +88,7 @@ pub struct StepSpec<'a, I: ?Sized> {
     pub idempotency_key: Option<&'a str>,
 }
 
+// [Phase 2]
 /// The result of a step plus how it was obtained.
 #[derive(Debug, Clone, PartialEq)]
 pub struct StepOutcome<T> {
@@ -90,6 +99,7 @@ pub struct StepOutcome<T> {
     pub usage: TokenUsage,
 }
 
+// [Phase 2]
 /// Counters for one `DurableContext` (one process lifetime of a run).
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct RunStats {
@@ -101,12 +111,14 @@ pub struct RunStats {
     pub tokens_replayed: TokenUsage,
 }
 
+// [Phase 2]
 struct Inner {
     replayer: Replayer,
     next_seq: u64,
     stats: RunStats,
 }
 
+// [Phase 2]
 /// A durable run. Steps executed through it are journaled and replayed after a restart.
 pub struct DurableContext {
     run_id: String,
@@ -115,7 +127,9 @@ pub struct DurableContext {
     inner: Mutex<Inner>,
 }
 
+// [Phase 2]
 impl DurableContext {
+    // [Phase 2]
     /// Opens run `run_id` in `$DURABLE_RUNS_DIR` (default `./runs`), creating it if needed.
     pub async fn open(run_id: &str) -> Result<Self> {
         let dir = std::env::var_os("DURABLE_RUNS_DIR")
@@ -124,11 +138,13 @@ impl DurableContext {
         Self::open_in(dir, run_id).await
     }
 
+    // [Phase 2]
     /// Opens run `run_id` in `dir` with `SyncMode::Full`.
     pub async fn open_in(dir: impl AsRef<Path>, run_id: &str) -> Result<Self> {
         Self::open_with(dir, run_id, SyncMode::Full).await
     }
 
+    // [Phase 2]
     /// Opens run `run_id` in `dir` with an explicit sync mode. The journal file is
     /// `<dir>/<run_id>.db`.
     pub async fn open_with(dir: impl AsRef<Path>, run_id: &str, sync: SyncMode) -> Result<Self> {
@@ -146,15 +162,18 @@ impl DurableContext {
         })
     }
 
+    // [Phase 2]
     pub fn run_id(&self) -> &str {
         &self.run_id
     }
 
+    // [Phase 2]
     /// Counters for steps run through this context so far.
     pub fn stats(&self) -> Result<RunStats> {
         Ok(self.lock()?.stats)
     }
 
+    // [Phase 2]
     /// A general step (kind `tool`). Returns the cached value on replay.
     pub async fn step<I, T, F, Fut, E>(&self, name: &str, input: &I, f: F) -> Result<T>
     where
@@ -178,6 +197,7 @@ impl DurableContext {
         Ok(outcome.value)
     }
 
+    // [Phase 2]
     /// An LLM step: the closure also reports token usage, which is journaled.
     pub async fn llm_step<I, T, F, Fut, E>(&self, name: &str, input: &I, f: F) -> Result<T>
     where
@@ -196,6 +216,7 @@ impl DurableContext {
         Ok(self.execute(spec, f).await?.value)
     }
 
+    // [Phase 2]
     /// A side effect guarded by `idempotency_key`. Once it completes it never runs again for
     /// this run. If the process dies *during* the effect, it re-runs on restart, so pass the
     /// same key to the external system so it can deduplicate.
@@ -225,6 +246,7 @@ impl DurableContext {
         Ok(outcome.value)
     }
 
+    // [Phase 2]
     /// The general form behind `step`, `llm_step` and `side_effect`. Returns whether the
     /// value was replayed, which the demo uses for its [EXECUTED]/[REPLAYED] tags.
     pub async fn execute<I, T, F, Fut, E>(
@@ -319,11 +341,13 @@ impl DurableContext {
         }
     }
 
+    // [Phase 2]
     fn lock(&self) -> Result<MutexGuard<'_, Inner>> {
         self.inner.lock().map_err(|_| DurableError::LockPoisoned)
     }
 }
 
+// [Phase 2]
 /// Run ids become file names, so restrict them to a safe character set (no path traversal).
 fn validate_run_id(run_id: &str) -> Result<()> {
     let ok = !run_id.is_empty()
@@ -338,6 +362,7 @@ fn validate_run_id(run_id: &str) -> Result<()> {
     }
 }
 
+// [Phase 2]
 #[cfg(test)]
 mod tests {
     use super::*;
