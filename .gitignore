@@ -1,0 +1,8 @@
+/target
+# Secrets: never commit API keys
+.env
+# Runtime journals / metrics databases
+*.db
+*.db-wal
+*.db-shm
+node_modules/

@@ -1,0 +1,17 @@
+[package]
+name = "bench"
+description = "Benchmark and chaos harness that writes reports to results/"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+durable-core.workspace = true
+durable-llm.workspace = true
+durable-metrics.workspace = true
+tokio.workspace = true
+anyhow.workspace = true
+clap.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true

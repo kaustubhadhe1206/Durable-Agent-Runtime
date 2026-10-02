@@ -1,0 +1,15 @@
+[package]
+name = "durable-core"
+description = "Journal, step API, and replay engine for durable agent runs"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+tokio.workspace = true
+rusqlite.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+sha2.workspace = true
+tracing.workspace = true
