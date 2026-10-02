@@ -25,3 +25,6 @@ jobs:
         run: cargo clippy --all-targets -- -D warnings
       - name: Test
         run: cargo test --workspace
+        env:
+          # Live Mistral tests run only if this repo secret is set; otherwise they skip.
+          MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}

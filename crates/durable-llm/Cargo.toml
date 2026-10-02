@@ -1,6 +1,6 @@
 [package]
 name = "durable-llm"
-description = "LLM client trait, real client, and deterministic mock LLM"
+description = "LLM client trait and Mistral client with token-based cost tracking"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -11,3 +11,11 @@ serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
 tracing.workspace = true
+reqwest = { version = "0.13", features = ["json"] }
+toml = "1.1"
+
+[dev-dependencies]
+durable-core.workspace = true
+dotenvy = "0.15"
+tempfile = "3.27"
+anyhow.workspace = true

@@ -144,16 +144,64 @@ The **unit tests** in `crates/durable-core/src/replay.rs`:
 | `non_determinism_is_checked_for_pending_steps_too` | Mismatches are caught even for a step that crashed mid-run |
 | `pending_and_failed_steps_re_execute` | `PENDING` and `FAILED` steps are reset and run again |
 
-### Phase 3: LLM Layer + Mock Server 🔜
+### Phase 3: LLM Layer (real Mistral) ✅
+
+This phase connects the project to the **real Mistral AI**. There is no fake AI: the live tests
+send real questions to Mistral using the key in `.env`. The default model is
+`ministral-8b-latest` (open-weight, available on the free plan).
+
+#### Try it yourself: ask Mistral one question
+
+```powershell
+cargo run -p durable-llm --example mistral_ping
+cargo run -p durable-llm --example mistral_ping -- "What is the capital of Japan?"
+```
+
+You'll see Mistral's reply, how many tokens (word pieces) went in and out, how long it took,
+and what it *would* cost on a paid plan (the free plan charges $0).
+
+#### Run the tests
 
 ```powershell
 cargo test -p durable-llm
 ```
 
-- **Mock LLM tests:** same prompt always returns the same text (deterministic), latency and
-  token counts are configurable, and cost is computed from token counts using `pricing.toml`.
-- **Real Mistral call:** a small example that sends one request to Mistral and prints the reply,
-  token counts, and cost. The exact command is added here when Phase 3 lands. It needs `.env`.
+Expected: 10 unit tests + 3 live tests, all `ok`. To watch the live replies:
+
+```powershell
+cargo test -p durable-llm --test mistral_live -- --nocapture
+```
+
+Live tests (file: `crates/durable-llm/tests/mistral_live.rs`). These really call Mistral:
+
+| Test | In simple words |
+| --- | --- |
+| `real_call_returns_text_tokens_latency_and_cost` | Ask Mistral a real question. Check we get an answer, token counts, a time taken, and that the cost is worked out from the token counts |
+| `bad_api_key_is_rejected_without_retrying` | A wrong password (API key) is refused straight away, and we don't keep retrying |
+| `durable_step_with_real_llm_is_not_repeated_on_rerun` | **Phases 2 + 3 together:** ask Mistral inside a durable step, then run it again. Mistral is called only **once**, and the second time the exact same answer comes from the notebook |
+
+Unit tests. These check our own code, with no internet needed:
+
+| Test | In simple words |
+| --- | --- |
+| `cost_is_computed_from_token_counts` | The cost maths is right (tokens × price per million) |
+| `unknown_model_is_an_error` | Asking the price of a model we don't know gives a clear error, not a made-up price |
+| `invalid_toml_is_an_error` | A broken price file is reported, not silently ignored |
+| `bundled_table_covers_default_model_and_dated_names` | The price file has every model we use |
+| `parses_mistral_response` | We correctly read a real Mistral reply (saved from an actual call) |
+| `parses_chunked_content` | We can read replies that come in several pieces |
+| `rejects_malformed_response` | A garbled reply gives a clear error instead of crashing |
+| `request_body_has_expected_shape` | The question we send is in the format Mistral expects |
+| `empty_api_key_is_rejected_and_key_is_never_printed` | A missing key is caught, and the key never shows up in logs |
+| `backoff_grows_and_is_capped` | When Mistral says "slow down", we wait a bit longer each time, up to a limit |
+
+> **No key?** The live tests print `SKIPPED` and pass. That's what happens on GitHub unless you
+> add the key there: repo **Settings → Secrets and variables → Actions → New repository
+> secret**, name `MISTRAL_API_KEY`.
+
+Prices come from `crates/durable-llm/pricing.toml`, copied from
+<https://mistral.ai/pricing/api/>. Free-plan speed limits for your key: Ministral 8B allows 188
+requests/minute, 3B allows 750, 14B allows 30.
 
 ### Phase 4: Demo Agent + Crash Injection 🔜
 

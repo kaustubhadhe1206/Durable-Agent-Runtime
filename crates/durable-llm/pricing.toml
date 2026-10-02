@@ -1,0 +1,30 @@
+# LLM prices in USD per 1 million tokens.
+# Source: https://mistral.ai/pricing/api/ (checked 2026-10-02).
+# The free API tier does not charge, but cost is still computed from token counts so the
+# project can report what a crash-and-restart would have cost on a paid plan.
+#
+# Each model is listed under both its "-latest" alias and the dated name the API returns.
+
+[models.ministral-3b-latest]
+input_per_million = 0.10
+output_per_million = 0.10
+
+[models.ministral-3b-2512]
+input_per_million = 0.10
+output_per_million = 0.10
+
+[models.ministral-8b-latest]
+input_per_million = 0.15
+output_per_million = 0.15
+
+[models.ministral-8b-2512]
+input_per_million = 0.15
+output_per_million = 0.15
+
+[models.ministral-14b-latest]
+input_per_million = 0.20
+output_per_million = 0.20
+
+[models.ministral-14b-2512]
+input_per_million = 0.20
+output_per_million = 0.20
