@@ -39,9 +39,9 @@ durable-agent/
 ## Rules for Claude
 1. Work only on the phase I name from PLAN.md. Stop at that phase's checkpoint and summarize
    what was done, what is left, and how to verify it.
-2. **Hand-written zone**: `crates/durable-core/src/journal.rs` and
-   `crates/durable-core/src/replay.rs` are written by me. Do not write their implementation.
-   You may explain concepts, review my code, point out bugs, and write tests for them.
+2. **Implementation ownership**: Claude implements all phases, including
+   `crates/durable-core/src/journal.rs` and `crates/durable-core/src/replay.rs`.
+   One phase at a time; wait for my command before starting the next phase.
 3. Every feature ships with tests. Before saying a task is done, run:
    `cargo fmt --all`, `cargo clippy --all-targets -- -D warnings`, `cargo test --workspace`.
 4. No `unwrap()`/`expect()` in library crates. Use `thiserror` in libraries, `anyhow` in apps.
