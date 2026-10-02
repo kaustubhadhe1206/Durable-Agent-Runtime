@@ -8,3 +8,5 @@
 node_modules/
 # Default directory for run journals (DurableContext::open)
 /runs
+# Demo agent output (reports + side-effect ledger)
+/reports

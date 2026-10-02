@@ -305,9 +305,10 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "clap",
+ "dotenvy",
  "durable-core",
  "durable-llm",
- "durable-metrics",
+ "tempfile",
  "tokio",
  "tracing",
  "tracing-subscriber",

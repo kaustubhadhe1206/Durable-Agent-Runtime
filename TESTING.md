@@ -203,40 +203,84 @@ Prices come from `crates/durable-llm/pricing.toml`, copied from
 <https://mistral.ai/pricing/api/>. Free-plan speed limits for your key: Ministral 8B allows 188
 requests/minute, 3B allows 750, 14B allows 30.
 
-### Phase 4: Demo Agent + Crash Injection 🔜
+### Phase 4: Demo Agent + Crash Injection ✅
 
-Normal durable run:
+A 10-step research agent that really uses Mistral. It researches a topic and writes a report:
+
+| Step | What it does |
+| --- | --- |
+| 1 | Plan: ask Mistral for 6 subtopics |
+| 2–7 | Research: one Mistral summary per subtopic |
+| 8 | Outline the report |
+| 9 | Write the final report |
+| 10 | Save the report to a file (a **do-once action**, protected by an idempotency key) |
+
+Each step prints a tag:
+
+- `[EXECUTED]`: the step really ran (a real Mistral call)
+- `[REPLAYED]`: the answer came from the notebook (journal): instant, free, no Mistral call
+
+#### Demo 1: crash at step 6, then restart (durable mode)
 
 ```powershell
-cargo run -p demo-agent -- --mode durable
-```
-
-Expect 10 steps, each tagged `[EXECUTED]`, then a summary of calls, tokens, and cost.
-
-Crash at step 6, then recover:
-
-```powershell
-$env:CRASH_AT_STEP=6; cargo run -p demo-agent -- --mode durable
+$env:CRASH_AT_STEP=6; cargo run -p demo-agent -- --mode durable --fresh
 Remove-Item Env:CRASH_AT_STEP; cargo run -p demo-agent -- --mode durable
 ```
 
-- First run: dies right after step 6 starts.
-- Second run: steps 1–5 show `[REPLAYED]` (served from the journal, **no LLM call, no tokens**),
-  steps 6–10 show `[EXECUTED]`.
-- The "save report" side effect happens **exactly once** across both runs.
+- First command: steps 1–5 show `[EXECUTED]`, then the program crashes when step 6 starts.
+- Second command: steps 1–5 show `[REPLAYED]` (0 ms each) and steps 6–10 show `[EXECUTED]`.
+  The summary says **LLM calls made: 4** and **report saves: 1**.
+- Run the second command once more: all 10 steps show `[REPLAYED]`, LLM calls made: 0,
+  and report saves is still 1.
 
-Compare with naive mode (no journal), which starts over and re-pays for every step:
+`--fresh` deletes the old notebook so you start a brand-new run. Without it, the agent resumes
+whatever run is already saved under the same `--run-id` (default `demo`).
+
+#### Demo 2: the same crash without a notebook (naive mode)
 
 ```powershell
-$env:CRASH_AT_STEP=6; cargo run -p demo-agent -- --mode naive
+$env:CRASH_AT_STEP=6; cargo run -p demo-agent -- --mode naive --fresh
 Remove-Item Env:CRASH_AT_STEP; cargo run -p demo-agent -- --mode naive
 ```
 
-> PowerShell sets env vars with `$env:NAME=value`. The `NAME=value cmd` form in CLAUDE.md is
-> bash syntax. `Remove-Item Env:NAME` clears the variable again.
+The second command shows **all 10 steps `[EXECUTED]`**: it starts over, asks Mistral all over
+again, and pays for steps 1–5 twice. Run it again and "report saves" becomes 2: the do-once
+action happened twice.
 
-**Inspect a journal:** install the VS Code extension **"SQLite Viewer"**, then click a run's
-`.db` file to see the `steps` table (status, outputs, tokens, timestamps).
+#### Demo 3: the non-determinism check
+
+```powershell
+cargo run -p demo-agent -- --mode durable --topic "Something else"
+```
+
+After Demo 1, this fails with "Non-determinism detected": the notebook was written for a
+different topic, so reusing its answers would be wrong. Add `--fresh` or a new `--run-id` to fix.
+
+> PowerShell sets env vars with `$env:NAME=value` (the `NAME=value cmd` form in CLAUDE.md is
+> bash syntax). `Remove-Item Env:NAME` clears it. If you forget, the restart crashes at step 6
+> again, because step 6 is the first step that really runs.
+
+**Where things are saved:** notebooks in `runs/` (`runs/demo.db`), reports in `reports/`
+(`reports/demo-durable.md`), and `reports/demo-durable.saves.log` gets one line each time the
+report is *really* saved. To see inside a notebook, install the VS Code extension
+**"SQLite Viewer"** and click `runs/demo.db`.
+
+Other options: `--topic "..."`, `--run-id NAME`. Full list: `cargo run -p demo-agent -- --help`.
+
+#### Automatic tests
+
+```powershell
+cargo test -p demo-agent
+```
+
+Expected: 7 unit tests + 2 end-to-end tests, all `ok`. The end-to-end tests take about 45
+seconds because they make ~30 real Mistral calls. File: `apps/demo-agent/tests/crash_recovery.rs`.
+
+| Test | In simple words |
+| --- | --- |
+| `durable_crash_at_6_then_restart_replays_1_to_5` | Does Demo 1 automatically: crash at step 6, restart, check steps 1–5 are `[REPLAYED]`, 6–10 are `[EXECUTED]`, only 4 Mistral calls, report saved **once**. Then a third run: everything replayed, 0 calls, still one save |
+| `naive_restart_redoes_everything_and_repeats_the_side_effect` | Does Demo 2: after a crash, naive mode redoes all 10 steps (9 Mistral calls), and running again saves the report a **second** time |
+| unit tests (`agent.rs`, `main.rs`) | Reading the 6 subtopics out of Mistral's plan (numbers, bullets, too few lines), the `CRASH_AT_STEP` value, and counting saves |
 
 ### Phase 5: Benchmarks 🔜
 
