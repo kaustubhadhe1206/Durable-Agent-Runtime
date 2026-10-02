@@ -13,6 +13,7 @@
 use std::future::Future;
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, MutexGuard};
+use std::time::Instant;
 
 use serde::de::DeserializeOwned;
 use serde::Serialize;
@@ -97,6 +98,10 @@ pub struct StepOutcome<T> {
     /// `true` if served from the journal without running the closure.
     pub replayed: bool,
     pub usage: TokenUsage,
+    // [Phase 5]
+    /// Time spent writing/reading the journal for this step, in microseconds
+    /// (the durability overhead; excludes the step's own work).
+    pub journal_us: u64,
 }
 
 // [Phase 2]
@@ -263,7 +268,8 @@ impl DurableContext {
     {
         let input_json = serde_json::to_string(spec.input)?;
 
-        // Phase 1 (locked): claim a seq and ask the replayer what to do.
+        // Stage 1 (locked): claim a seq and ask the replayer what to do.
+        let begin_started = Instant::now(); // [Phase 5] journal timing
         let (seq, decision) = {
             let mut inner = self.lock()?;
             let seq = inner.next_seq;
@@ -287,6 +293,7 @@ impl DurableContext {
             }
             (seq, decision)
         }; // guard dropped here, before any `.await`
+        let begin_us = micros_since(begin_started);
 
         if let Decision::Replay {
             output_json,
@@ -302,13 +309,15 @@ impl DurableContext {
                     tokens_in,
                     tokens_out,
                 },
+                journal_us: begin_us,
             });
         }
 
-        // Phase 2 (unlocked): run the user's closure. The step is already durably PENDING.
+        // Stage 2 (unlocked): run the user's closure. The step is already durably PENDING.
         let result = f().await;
 
-        // Phase 3 (locked): record the result.
+        // Stage 3 (locked): record the result.
+        let record_started = Instant::now(); // [Phase 5] journal timing
         let mut inner = self.lock()?;
         match result {
             Ok((value, usage)) => {
@@ -327,6 +336,7 @@ impl DurableContext {
                     value,
                     replayed: false,
                     usage,
+                    journal_us: begin_us + micros_since(record_started),
                 })
             }
             Err(e) => {
@@ -345,6 +355,11 @@ impl DurableContext {
     fn lock(&self) -> Result<MutexGuard<'_, Inner>> {
         self.inner.lock().map_err(|_| DurableError::LockPoisoned)
     }
+}
+
+// [Phase 5]
+fn micros_since(start: Instant) -> u64 {
+    u64::try_from(start.elapsed().as_micros()).unwrap_or(u64::MAX)
 }
 
 // [Phase 2]

@@ -15,3 +15,12 @@ anyhow.workspace = true
 clap.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+dotenvy = "0.15"
+tempfile = "3.27"
+sysinfo = "0.39"
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+
+[dev-dependencies]
+dotenvy = "0.15"

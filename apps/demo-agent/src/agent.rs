@@ -9,6 +9,8 @@ use anyhow::Context;
 use durable_core::{DurableContext, StepKind, StepSpec, TokenUsage};
 use durable_llm::{LlmClient, LlmError, LlmRequest, LlmResponse, MistralClient};
 
+use crate::events::{now_unix_us, Event, EventLog};
+
 // [Phase 4]
 pub const TOTAL_STEPS: u32 = 10;
 // [Phase 4]
@@ -42,6 +44,9 @@ pub struct Agent<'a> {
     pub mode_name: &'static str,
     pub reports_dir: PathBuf,
     pub totals: Totals,
+    // [Phase 5]
+    /// Optional `--events` log read by the benchmark harness.
+    pub events: Option<EventLog>,
 }
 
 // [Phase 4]
@@ -135,11 +140,12 @@ impl Agent<'_> {
         request: LlmRequest,
     ) -> anyhow::Result<String> {
         let started = Instant::now();
-        // Copy what the closure needs so it doesn't borrow all of `self`.
+        let started_unix_us = now_unix_us(); // [Phase 5]
+                                             // Copy what the closure needs so it doesn't borrow all of `self`.
         let client = self.client;
         let crash_at = self.crash_at;
 
-        let (resp, replayed): (LlmResponse, bool) = match &self.runner {
+        let (resp, replayed, journal_us): (LlmResponse, bool, u64) = match &self.runner {
             Runner::Durable(ctx) => {
                 let spec = StepSpec {
                     name,
@@ -158,13 +164,22 @@ impl Agent<'_> {
                         Ok::<_, LlmError>((resp, usage))
                     })
                     .await?;
-                (outcome.value, outcome.replayed)
+                (outcome.value, outcome.replayed, outcome.journal_us)
             }
             Runner::Naive => {
                 maybe_crash(crash_at, n);
-                (client.complete(&request).await?, false)
+                (client.complete(&request).await?, false, 0)
             }
         };
+        self.emit_step(
+            n,
+            "llm",
+            replayed,
+            (resp.tokens_in, resp.tokens_out),
+            started_unix_us,
+            started,
+            journal_us,
+        )?;
 
         let t = &mut self.totals;
         if replayed {
@@ -194,6 +209,7 @@ impl Agent<'_> {
     /// Step 10: write the report file. Guarded by an idempotency key in durable mode.
     async fn save_report(&mut self, n: u32, report: &str) -> anyhow::Result<String> {
         let started = Instant::now();
+        let started_unix_us = now_unix_us(); // [Phase 5]
         let crash_at = self.crash_at;
         let key = format!("save-report-{}", self.run_id);
         let file_stem = format!("{}-{}", self.run_id, self.mode_name);
@@ -204,7 +220,7 @@ impl Agent<'_> {
             write_report(&dir, &file_stem, &key, report)
         };
 
-        let (path, replayed) = match &self.runner {
+        let (path, replayed, journal_us) = match &self.runner {
             Runner::Durable(ctx) => {
                 let spec = StepSpec {
                     name: "save-report",
@@ -217,10 +233,19 @@ impl Agent<'_> {
                         save().await.map(|p| (p, TokenUsage::default()))
                     })
                     .await?;
-                (outcome.value, outcome.replayed)
+                (outcome.value, outcome.replayed, outcome.journal_us)
             }
-            Runner::Naive => (save().await?, false),
+            Runner::Naive => (save().await?, false, 0),
         };
+        self.emit_step(
+            n,
+            "side_effect",
+            replayed,
+            (0, 0),
+            started_unix_us,
+            started,
+            journal_us,
+        )?;
 
         if replayed {
             self.totals.replayed += 1;
@@ -234,6 +259,34 @@ impl Agent<'_> {
             &elapsed_ms(started),
         );
         Ok(path)
+    }
+
+    // [Phase 5]
+    /// Appends a `step` line to the event log, if one was requested.
+    #[allow(clippy::too_many_arguments)]
+    fn emit_step(
+        &mut self,
+        n: u32,
+        kind: &str,
+        replayed: bool,
+        (tokens_in, tokens_out): (u64, u64),
+        started_unix_us: u64,
+        started: Instant,
+        journal_us: u64,
+    ) -> anyhow::Result<()> {
+        if let Some(log) = &mut self.events {
+            log.write(&Event::Step {
+                n,
+                kind,
+                replayed,
+                tokens_in,
+                tokens_out,
+                started_unix_us,
+                duration_us: u64::try_from(started.elapsed().as_micros()).unwrap_or(u64::MAX),
+                journal_us,
+            })?;
+        }
+        Ok(())
     }
 }
 

@@ -5,6 +5,8 @@
 
 // [Phase 4]
 mod agent;
+// [Phase 5]
+mod events;
 
 use std::path::{Path, PathBuf};
 use std::time::Instant;
@@ -15,6 +17,7 @@ use durable_core::{DurableContext, DurableError};
 use durable_llm::{LlmClient, MistralClient, Pricing};
 
 use agent::{count_saves, Agent, Runner, Totals, TOTAL_STEPS};
+use events::{now_unix_us, Event, EventLog};
 
 // [Phase 4]
 const DEFAULT_TOPIC: &str = "How solid-state batteries could change electric cars";
@@ -60,11 +63,16 @@ struct Args {
     /// Delete this run's journal and reports first, to start a brand-new run.
     #[arg(long)]
     fresh: bool,
+    // [Phase 5]
+    /// Write a JSON-lines event log here (used by the benchmark harness).
+    #[arg(long)]
+    events: Option<PathBuf>,
 }
 
 // [Phase 4]
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    let process_start_us = now_unix_us(); // [Phase 5] for recovery-time measurement
     let _ = dotenvy::dotenv(); // loads MISTRAL_API_KEY from .env if present
     tracing_subscriber::fmt()
         .with_env_filter(
@@ -82,6 +90,19 @@ async fn main() -> anyhow::Result<()> {
 
     let client = MistralClient::from_env()?;
     let pricing = Pricing::bundled()?;
+
+    // [Phase 5]
+    let mut events = match &args.events {
+        Some(path) => Some(EventLog::create(path)?),
+        None => None,
+    };
+    if let Some(log) = &mut events {
+        log.write(&Event::Start {
+            unix_us: process_start_us,
+            mode: args.mode.name(),
+            run_id: &args.run_id,
+        })?;
+    }
 
     println!("=== Durable Agent Demo ===");
     println!(
@@ -110,6 +131,7 @@ async fn main() -> anyhow::Result<()> {
         mode_name: args.mode.name(),
         reports_dir: args.reports_dir.clone(),
         totals: Totals::default(),
+        events,
     };
 
     let started = Instant::now();
@@ -127,6 +149,13 @@ async fn main() -> anyhow::Result<()> {
             return Err(e);
         }
     };
+
+    // [Phase 5]
+    if let Some(log) = &mut agent.events {
+        log.write(&Event::Done {
+            unix_us: now_unix_us(),
+        })?;
+    }
 
     println!("\n=== Final report ===\n{}\n", report.text.trim());
     println!("saved to: {}", report.path);

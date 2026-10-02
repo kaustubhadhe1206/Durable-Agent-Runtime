@@ -191,6 +191,8 @@ async fn execute_reports_replayed_flag() {
     let second = run(&DurableContext::open_in(dir.path(), "r").await.unwrap()).await;
     assert!(!first.replayed);
     assert!(second.replayed);
+    // [Phase 5] an executed step wrote PENDING + COMPLETED, which takes measurable time
+    assert!(first.journal_us > 0, "journal time should be measured");
     assert_eq!((first.seq, second.seq), (1, 1));
     assert_eq!(second.value, "v");
 }
